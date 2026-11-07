@@ -3,7 +3,8 @@
 #include <string_view>
 #include <unistd.h>
 template <std::size_t Capacity> class IOBuffer {
-  int FD; 
+  int FD;
+  bool ERR = false;  
   static bool write_all(void) {};
 
 public:
@@ -20,13 +21,17 @@ public:
   // throw away without
   void discard(void) noexcept {};
   void wipe(void) noexcept {};
-  void reset_error(void) noexcept {};
-  bool good(void) const noexcept {};
+  const char *data(void) const noexcept {};
+  // INFO
+  // get error flag value, agnostic of what pattern you prefer
+  bool good(void) const noexcept {return !ERR;};
+  bool bad(void) const noexcept {return ERR;};
+  // set error flag to default
+  void reset_error(void) noexcept { ERR = false;};
   std::size_t size(void) const noexcept {};
   std::size_t remaining(void) const noexcept {};
   static constexpr std::size_t capacity(void) noexcept {return Capacity;};
   std::string_view view(void) const noexcept {};
-  const char *data(void) const noexcept {};
   // return the current File Descriptor
   int fd(void) const noexcept {return FD;};
   // set the new File Descriptor  
