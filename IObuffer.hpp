@@ -4,7 +4,8 @@
 #include <unistd.h>
 template <std::size_t Capacity> class IOBuffer {
   int FD;
-  bool ERR = false;  
+  bool ERR = false;
+  std::size_t LEN = 0;  
   static bool write_all(void) {};
 
 public:
@@ -28,8 +29,10 @@ public:
   bool bad(void) const noexcept {return ERR;};
   // set error flag to default
   void reset_error(void) noexcept { ERR = false;};
-  std::size_t size(void) const noexcept {};
-  std::size_t remaining(void) const noexcept {};
+  // get the amount of characters written so far
+  std::size_t written(void) const noexcept {return LEN;};
+  //get the amount of space left in the buffer
+  std::size_t remaining(void) const noexcept { return Capacity - LEN;};
   static constexpr std::size_t capacity(void) noexcept {return Capacity;};
   std::string_view view(void) const noexcept {};
   // return the current File Descriptor
