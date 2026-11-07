@@ -29,7 +29,6 @@ public:
     }
     LEN = 0;    
   };
-  const char *data(void) const noexcept {};
   // INFO
   // get error flag value, agnostic of what pattern you prefer
   bool good(void) const noexcept {return !ERR;};
@@ -40,8 +39,11 @@ public:
   std::size_t written(void) const noexcept {return LEN;};
   //get the amount of space left in the buffer
   std::size_t remaining(void) const noexcept { return Capacity - LEN;};
-  static constexpr std::size_t capacity(void) noexcept {return Capacity;};
-  std::string_view view(void) const noexcept {};
+  static constexpr std::size_t capacity(void) noexcept { return Capacity; };
+  // string view of the current buffer  
+  std::string_view view(void) const noexcept {return {BUFFER, LEN}; };
+  // pointer to the raw internal buffer
+  const char *data(void) const noexcept {return BUFFER;};
   // return the current File Descriptor
   int fd(void) const noexcept {return FD;};
   // set the new File Descriptor  
