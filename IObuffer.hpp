@@ -28,5 +28,6 @@ public:
   std::string_view view(void) const noexcept {};
   const char* data(void) const noexcept {};
   int fd(void) const noexcept {};
-  void set_fd(void) noexcept {};
+  // set the new file descriptor  
+  void set_fd(int fd) noexcept {FD = fd;};
 };
