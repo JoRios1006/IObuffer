@@ -5,9 +5,9 @@
 template <std::size_t Capacity> class IOBuffer {
   int FD;
   bool ERR = false;
-  std::size_t LEN = 0;  
+  std::size_t LEN = 0;
+  char BUFFER[Capacity];
   static bool write_all(void) {};
-
 public:
   // constructor
   explicit IOBuffer(int fd = STDOUT_FILENO) noexcept : FD(fd) {};
@@ -19,9 +19,16 @@ public:
   // SALIDA
   // flush->write(2) 
   bool flush(void){};
-  // throw away without
-  void discard(void) noexcept {};
-  void wipe(void) noexcept {};
+  // throw away without flushing setting LEN = 0
+  void discard(void) noexcept { LEN = 0;};
+  // set all the buffer to zeroes
+  void wipe(void) noexcept {
+    volatile char *P = BUFFER;
+    for (size_t I = 0; I < Capacity; ++I) {
+    P[I] = 0;
+    }
+    LEN = 0;    
+  };
   const char *data(void) const noexcept {};
   // INFO
   // get error flag value, agnostic of what pattern you prefer
