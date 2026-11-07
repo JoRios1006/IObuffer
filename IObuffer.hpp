@@ -1,4 +1,5 @@
 #pragma once
+#include <cerrno>
 #include <cstddef>
 #include <string_view>
 #include <unistd.h>
@@ -7,7 +8,17 @@ template <std::size_t Capacity> class IOBuffer {
   bool ERR = false;
   std::size_t LEN = 0;
   char BUFFER[Capacity];
-  static bool write_all(void) {};
+  static bool write_all(int fd, const char *P, std::size_t N) {
+    while (N > 0) {
+      ssize_t WRITTEN = ::write(fd, P, N);
+      if (WRITTEN < 0) {
+        if (errno == EINTR) continue; // señal: reintentar
+        return false;                 // EAGAIN, EPIPE, EBADF... => error
+      }
+      P += WRITTEN;
+      N -= static_cast<std::size_t>(WRITTEN);
+    }
+  };
 public:
   // constructor
   explicit IOBuffer(int fd = STDOUT_FILENO) noexcept : FD(fd) {};
@@ -18,7 +29,12 @@ public:
   IOBuffer &append(void) {};
   // SALIDA
   // flush->write(2) 
-  bool flush(void){};
+  bool flush(void) noexcept {return flush(FD);};
+  bool flush(int fd) noexcept {
+  if(LEN <= 0) return !ERR;    
+  if (!ERR && !write_all(fd, BUFFER, LEN)) ERR = true;
+  LEN = 0;
+  }
   // throw away without flushing setting LEN = 0
   void discard(void) noexcept { LEN = 0;};
   // set all the buffer to zeroes
