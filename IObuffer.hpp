@@ -26,8 +26,9 @@ public:
   std::size_t remaining(void) const noexcept {};
   static constexpr std::size_t capacity(void) noexcept {return Capacity;};
   std::string_view view(void) const noexcept {};
-  const char* data(void) const noexcept {};
-  int fd(void) const noexcept {};
-  // set the new file descriptor  
+  const char *data(void) const noexcept {};
+  // return the current File Descriptor
+  int fd(void) const noexcept {return FD;};
+  // set the new File Descriptor  
   void set_fd(int fd) noexcept {FD = fd;};
 };
