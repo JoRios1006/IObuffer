@@ -46,6 +46,10 @@ public:
       return *this;      
     }
   };
+
+  IOBuffer &append(const char *s) {
+    return append(s ? std::string_view(s) : std::string_view()); // wrap a char* to a string view ;P
+  }
   // SALIDA
   // flush->write(2) 
   bool flush(void) noexcept {return flush(FD);};
