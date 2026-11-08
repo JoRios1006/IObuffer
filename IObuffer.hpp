@@ -51,8 +51,14 @@ public:
     return append(s ? std::string_view(s) : std::string_view()); // wrap a char* to a string view ;P
   }
   IOBuffer &append(bool b) noexcept {
-    return append(b ? std::string_view("true") : std::string_view("false"));    
+    return append(b ? std::string_view("true") : std::string_view("false"));
   }
+  IOBuffer &append(char c) noexcept {
+    if (LEN == Capacity)
+      flush();
+    BUFFER[LEN++] = c;
+    return *this;
+    }
   // SALIDA
   // flush->write(2) 
   bool flush(void) noexcept {return flush(FD);};
