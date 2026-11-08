@@ -28,7 +28,7 @@ public:
   IOBuffer(const IOBuffer&) = delete;
   IOBuffer& operator=(const IOBuffer&) = delete;
   IOBuffer &append(void) {};
-  IOBuffer &append(std::string_view sv) {
+  IOBuffer &append(std::string_view sv) noexcept {
   if(sv.empty()) return *this; // prevent memcpy a nullptr
   if (sv.size() <= Capacity - LEN) {
     std::memcpy(BUFFER + LEN, sv.data(), sv.size());
@@ -47,8 +47,11 @@ public:
     }
   };
 
-  IOBuffer &append(const char *s) {
+  IOBuffer &append(const char *s) noexcept {
     return append(s ? std::string_view(s) : std::string_view()); // wrap a char* to a string view ;P
+  }
+  IOBuffer &append(bool b) noexcept {
+    return append(b ? std::string_view("true") : std::string_view("false"));    
   }
   // SALIDA
   // flush->write(2) 
