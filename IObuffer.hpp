@@ -1,6 +1,7 @@
 #pragma once
 #include <cerrno>
 #include <cstddef>
+#include <cstring>
 #include <string_view>
 #include <unistd.h>
 template <std::size_t Capacity> class IOBuffer {
@@ -27,6 +28,24 @@ public:
   IOBuffer(const IOBuffer&) = delete;
   IOBuffer& operator=(const IOBuffer&) = delete;
   IOBuffer &append(void) {};
+  IOBuffer &append(std::string_view sv) {
+  if(sv.empty()) return *this; // prevent memcpy a nullptr
+  if (sv.size() <= Capacity - LEN) {
+    std::memcpy(BUFFER + LEN, sv.data(), sv.size());
+    LEN += sv.size();
+    return *this;
+    }
+    flush(); // <- Why? You ran out of memory and don't want data to get lost, pay the cost of a syscall.
+    if (sv.size() >= Capacity) { // <- Doesn't even fit
+      if (!ERR && !write_all(FD, sv.data(), sv.size())) {
+        ERR = !ERR;
+      } else {
+        std::memcpy(BUFFER, sv.data(), sv.size());
+        LEN = sv.size();
+      }
+      return *this;      
+    }
+  };
   // SALIDA
   // flush->write(2) 
   bool flush(void) noexcept {return flush(FD);};
