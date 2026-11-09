@@ -104,6 +104,8 @@ public:
     return put_num(v, 16);
   }
   // SALIDA
+  template <typename T>
+  IOBuffer& operator<<(const T& v) noexcept { return append(v); }
   // flush->write(2)
   bool flush(void) noexcept { return flush(FD); };
   bool flush(int fd) noexcept {
