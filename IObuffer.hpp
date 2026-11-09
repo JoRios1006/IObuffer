@@ -4,15 +4,19 @@
 #include <cstddef>
 #include <cstring>
 #include <string_view>
+#include <system_error>
+#include <type_traits>
 #include <unistd.h>
+constexpr int MIN_CAPACITY = 64;
 template <std::size_t Capacity> class IOBuffer {
+  static_assert(Capacity >= MIN_CAPACITY);
   int FD;
   bool ERR = false;
   std::size_t LEN = 0;
   char BUFFER[Capacity]{}; // NOLINT
   static auto write_all(int FDE, const char *PTR, std::size_t NUM) -> bool {
     while (NUM > 0) { // NOLINT
-      ssize_t WRITTEN = ::write(FDE, PTR, NUM);
+      const std::size_t WRITTEN = ::write(FDE, PTR, NUM);
       if (WRITTEN < 0) {
         if (errno == EINTR) {
           continue; // señal: reintentar
@@ -20,7 +24,8 @@ template <std::size_t Capacity> class IOBuffer {
         return false; // EAGAIN, EPIPE, EBADF... => error
       }
       PTR += WRITTEN;
-      NUM -= static_cast<std::size_t>(WRITTEN);
+      NUM -= WRITTEN;
+      return true;
     }
   };
   template <typename T>
@@ -49,9 +54,8 @@ public:
   ~IOBuffer() { flush(); }
   IOBuffer(const IOBuffer &) = delete;
   auto operator=(const IOBuffer &) -> IOBuffer & = delete;
-  IOBuffer(IOBuffer &&) = default;
-  auto operator=(IOBuffer &&) -> IOBuffer & = default;
-  auto append() -> IOBuffer & {};
+  IOBuffer(IOBuffer &&) = delete;
+  auto operator=(IOBuffer &&) -> IOBuffer & = delete;
   auto append(std::string_view STRV) noexcept -> IOBuffer & {
     if (STRV.empty()) {
       return *this; // prevent memcpy a nullptr
@@ -63,15 +67,15 @@ public:
     }
     flush(); // <- Why? You ran out of memory and don't want data to get lost,
              // pay the cost of a syscall.
-    if (STRV.size() >= Capacity) { // <- Doesn't even fit
+    if (STRV.size() >= Capacity) {
       if (!ERR && !write_all(FD, STRV.data(), STRV.size())) {
-        ERR = !ERR;
-      } else {
-        std::memcpy(BUFFER, STRV.data(), STRV.size());
-        LEN = STRV.size();
+        ERR = true;
       }
-      return *this;
+    } else {
+      std::memcpy(BUFFER, STRV.data(), STRV.size());
+      LEN = STRV.size();
     }
+    return *this;
   };
 
   auto append(const char *STR) noexcept -> IOBuffer & {
@@ -126,14 +130,14 @@ public:
       ERR = true;
     }
     LEN = 0;
+    return !ERR;
   }
   // throw away without flushing setting LEN = 0
   void discard() noexcept { LEN = 0; };
   // set all the buffer to zeroes
   void wipe() noexcept {
     volatile char *PTR = BUFFER;
-#pragma unroll Capacity
-    for (size_t IDX = 0; IDX < Capacity; ++IDX) {
+    for (size_t IDX = 0; IDX < Capacity; ++IDX) { // NOLINT
       PTR[IDX] = 0;
     }
     LEN = 0;
