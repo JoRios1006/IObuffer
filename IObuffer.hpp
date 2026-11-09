@@ -27,6 +27,19 @@ template <std::size_t Capacity> class IOBuffer {
       std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> &&
       !std::is_same_v<std::remove_cv_t<T>, char>;
 
+  template <typename... A> IOBuffer &put_num(A... a) noexcept {
+    auto r = std::to_chars(BUFFER + LEN, BUFFER + Capacity, a...);
+    if (r.ec != std::errc{}) {
+      flush();
+      r = std::to_chars(BUFFER, BUFFER + Capacity, a...);
+      if (r.ec != std::errc{}) {
+        ERR = true;
+        return *this;
+      }
+    }
+    LEN = static_cast<std::size_t>(r.ptr - BUFFER);
+    return *this;
+  }
 public:
   // constructor
   explicit IOBuffer(int fd = STDOUT_FILENO) noexcept : FD(fd) {};
