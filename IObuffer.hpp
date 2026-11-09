@@ -13,7 +13,7 @@ template <std::size_t Capacity> class IOBuffer {
   static constexpr std::size_t MIN_CAPACITY = 64;
   static_assert(Capacity >= MIN_CAPACITY);
   int FD;
-  bool ERR = false;
+  bool ERR_ = false;
   std::size_t LEN = 0;
   char BUFFER[Capacity]{}; // NOLINT
 
@@ -44,7 +44,7 @@ template <std::size_t Capacity> class IOBuffer {
       flush();
       RES = std::to_chars(BUFFER, BUFFER + Capacity, ARG...);
       if (RES.ec != std::errc{}) {
-        ERR = true;
+        ERR_ = true;
         return *this;
       }
     }
@@ -73,8 +73,8 @@ public:
     flush(); // <- Why? You ran out of memory and don't want data to get lost,
              // pay the cost of a syscall.
     if (STRV.size() >= Capacity) {
-      if (!ERR && !write_all(FD, STRV.data(), STRV.size())) {
-        ERR = true;
+      if (!ERR_ && !write_all(FD, STRV.data(), STRV.size())) {
+        ERR_ = true;
       }
     } else {
       std::memcpy(BUFFER, STRV.data(), STRV.size());
@@ -129,13 +129,13 @@ public:
   auto flush() noexcept -> bool { return flush(FD); }
   auto flush(int FDE) noexcept -> bool {
     if (LEN == 0) {
-      return !ERR;
+      return !ERR_;
     }
-    if (!ERR && !write_all(FDE, BUFFER, LEN)) {
-      ERR = true;
+    if (!ERR_ && !write_all(FDE, BUFFER, LEN)) {
+      ERR_ = true;
     }
     LEN = 0;
-    return !ERR;
+    return !ERR_;
   }
   // throw away without flushing setting LEN = 0
   void discard() noexcept { LEN = 0; }
@@ -149,10 +149,10 @@ public:
   }
   // INFO
   // get error flag value, agnostic of what pattern you prefer
-  [[nodiscard]] auto good() const noexcept -> bool { return !ERR; }
-  [[nodiscard]] auto bad() const noexcept -> bool { return ERR; }
+  [[nodiscard]] auto good() const noexcept -> bool { return !ERR_; }
+  [[nodiscard]] auto bad() const noexcept -> bool { return ERR_; }
   // set error flag to default
-  void reset_error() noexcept { ERR = false; }
+  void reset_error() noexcept { ERR_ = false; }
   // get the amount of characters written so far
   [[nodiscard]] auto written() const noexcept -> std::size_t { return LEN; }
   // get the amount of space left in the buffer
