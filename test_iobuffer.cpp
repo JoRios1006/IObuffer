@@ -1,12 +1,12 @@
-// test_iobuffer.cpp - tests de IObuffer.hpp (POSIX, C++17).
 // FULL DISCLOSURE CLAUDE WROTE THIS
+// test_iobuffer.cpp - tests de IObuffer.hpp (POSIX, C++17).
 //
 // Compilar y correr (una línea):
 //   g++ -std=c++17 -O1 -g -Wall -Wextra -fsanitize=address,undefined -pthread test_iobuffer.cpp -o test_iobuffer && ./test_iobuffer
 //
 // CHECK no usa assert(): sigue activo con -DNDEBUG / -O2.
 
-#include "./IObuffer.hpp"
+#include <iobuffer/IObuffer.hpp>
 
 #include <csignal>
 #include <cstdio>
