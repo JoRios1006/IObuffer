@@ -4,19 +4,23 @@
 #include <cstddef>
 #include <cstring>
 #include <string_view>
+#include <sys/types.h>
 #include <system_error>
 #include <type_traits>
 #include <unistd.h>
-constexpr int MIN_CAPACITY = 64;
+
 template <std::size_t Capacity> class IOBuffer {
+  static constexpr std::size_t MIN_CAPACITY = 64;
   static_assert(Capacity >= MIN_CAPACITY);
   int FD;
   bool ERR = false;
   std::size_t LEN = 0;
   char BUFFER[Capacity]{}; // NOLINT
-  static auto write_all(int FDE, const char *PTR, std::size_t NUM) -> bool {
+
+  static auto write_all(int FDE, const char *PTR, std::size_t NUM) noexcept
+      -> bool {
     while (NUM > 0) { // NOLINT
-      const std::size_t WRITTEN = ::write(FDE, PTR, NUM);
+      const ssize_t WRITTEN = ::write(FDE, PTR, NUM);
       if (WRITTEN < 0) {
         if (errno == EINTR) {
           continue; // señal: reintentar
@@ -24,10 +28,11 @@ template <std::size_t Capacity> class IOBuffer {
         return false; // EAGAIN, EPIPE, EBADF... => error
       }
       PTR += WRITTEN;
-      NUM -= WRITTEN;
-      return true;
+      NUM -= static_cast<std::size_t>(WRITTEN);
     }
-  };
+    return true; // fuera del while
+  }
+
   template <typename T>
   static constexpr bool is_int_v =
       std::is_integral_v<T> && !std::is_same_v<std::remove_cv_t<T>, bool> &&
@@ -49,7 +54,7 @@ template <std::size_t Capacity> class IOBuffer {
 
 public:
   // constructor
-  explicit IOBuffer(int fde = STDOUT_FILENO) noexcept : FD(fde) {};
+  explicit IOBuffer(int fde = STDOUT_FILENO) noexcept : FD(fde) {}
   // descructor
   ~IOBuffer() { flush(); }
   IOBuffer(const IOBuffer &) = delete;
@@ -76,7 +81,7 @@ public:
       LEN = STRV.size();
     }
     return *this;
-  };
+  }
 
   auto append(const char *STR) noexcept -> IOBuffer & {
     return append((STR != nullptr)
@@ -121,9 +126,9 @@ public:
     return append(value);
   }
   // flush->write(2)
-  auto flush() noexcept -> bool { return flush(FD); };
+  auto flush() noexcept -> bool { return flush(FD); }
   auto flush(int FDE) noexcept -> bool {
-    if (LEN <= 0) {
+    if (LEN == 0) {
       return !ERR;
     }
     if (!ERR && !write_all(FDE, BUFFER, LEN)) {
@@ -133,36 +138,36 @@ public:
     return !ERR;
   }
   // throw away without flushing setting LEN = 0
-  void discard() noexcept { LEN = 0; };
+  void discard() noexcept { LEN = 0; }
   // set all the buffer to zeroes
   void wipe() noexcept {
     volatile char *PTR = BUFFER;
-    for (size_t IDX = 0; IDX < Capacity; ++IDX) { // NOLINT
+    for (std::size_t IDX = 0; IDX < Capacity; ++IDX) { // NOLINT
       PTR[IDX] = 0;
     }
     LEN = 0;
-  };
+  }
   // INFO
   // get error flag value, agnostic of what pattern you prefer
-  [[nodiscard]] auto good() const noexcept -> bool { return !ERR; };
-  [[nodiscard]] auto bad() const noexcept -> bool { return ERR; };
+  [[nodiscard]] auto good() const noexcept -> bool { return !ERR; }
+  [[nodiscard]] auto bad() const noexcept -> bool { return ERR; }
   // set error flag to default
-  void reset_error() noexcept { ERR = false; };
+  void reset_error() noexcept { ERR = false; }
   // get the amount of characters written so far
-  [[nodiscard]] auto written() const noexcept -> std::size_t { return LEN; };
+  [[nodiscard]] auto written() const noexcept -> std::size_t { return LEN; }
   // get the amount of space left in the buffer
   [[nodiscard]] auto remaining() const noexcept -> std::size_t {
     return Capacity - LEN;
-  };
-  static constexpr auto capacity() noexcept -> std::size_t { return Capacity; };
+  }
+  static constexpr auto capacity() noexcept -> std::size_t { return Capacity; }
   // string view of the current buffer
   [[nodiscard]] auto view() const noexcept -> std::string_view {
     return {BUFFER, LEN};
-  };
+  }
   // pointer to the raw internal buffer
-  [[nodiscard]] auto data() const noexcept -> const char * { return BUFFER; };
+  [[nodiscard]] auto data() const noexcept -> const char * { return BUFFER; }
   // return the current File Descriptor
-  [[nodiscard]] auto fd() const noexcept -> int { return FD; };
+  [[nodiscard]] auto fd() const noexcept -> int { return FD; }
   // set the new File Descriptor
-  void set_fd(int FDE) noexcept { FD = FDE; };
+  void set_fd(int FDE) noexcept { FD = FDE; }
 };
