@@ -17,6 +17,7 @@
 #error "IObuffer needs floating-point std::to_chars (libstdc++ >= 11)"
 #endif
 
+namespace iobuffer {
 template <std::size_t Capacity> class IOBuffer {
   static constexpr std::size_t MIN_CAPACITY = 64;
   static_assert(Capacity >= MIN_CAPACITY);
@@ -179,3 +180,4 @@ public:
   // set the new File Descriptor
   void set_fd(int FDE) noexcept { FD = FDE; }
 };
+}  // namespace iobuffer
