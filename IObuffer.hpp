@@ -9,14 +9,14 @@ template <std::size_t Capacity> class IOBuffer {
   int FD;
   bool ERR = false;
   std::size_t LEN = 0;
-  char BUFFER[Capacity]{}; //NOLINT
+  char BUFFER[Capacity]{}; // NOLINT
   static auto write_all(int FDE, const char *PTR, std::size_t NUM) -> bool {
-    while (NUM > 0) { //NOLINT
+    while (NUM > 0) { // NOLINT
       ssize_t WRITTEN = ::write(FDE, PTR, NUM);
       if (WRITTEN < 0) {
         if (errno == EINTR) {
-          continue;   // señal: reintentar
-          }
+          continue; // señal: reintentar
+        }
         return false; // EAGAIN, EPIPE, EBADF... => error
       }
       PTR += WRITTEN;
@@ -41,6 +41,7 @@ template <std::size_t Capacity> class IOBuffer {
     LEN = static_cast<std::size_t>(RES.ptr - BUFFER);
     return *this;
   }
+
 public:
   // constructor
   explicit IOBuffer(int fde = STDOUT_FILENO) noexcept : FD(fde) {};
@@ -48,13 +49,13 @@ public:
   ~IOBuffer() { flush(); }
   IOBuffer(const IOBuffer &) = delete;
   auto operator=(const IOBuffer &) -> IOBuffer & = delete;
-  IOBuffer(IOBuffer&&) = default;
-  auto operator=(IOBuffer&&) -> IOBuffer& = default;
+  IOBuffer(IOBuffer &&) = default;
+  auto operator=(IOBuffer &&) -> IOBuffer & = default;
   auto append() -> IOBuffer & {};
   auto append(std::string_view STRV) noexcept -> IOBuffer & {
     if (STRV.empty()) {
       return *this; // prevent memcpy a nullptr
-      }
+    }
     if (STRV.size() <= Capacity - LEN) {
       std::memcpy(BUFFER + LEN, STRV.data(), STRV.size());
       LEN += STRV.size();
@@ -74,8 +75,9 @@ public:
   };
 
   auto append(const char *STR) noexcept -> IOBuffer & {
-    return append((STR != nullptr) ? std::string_view(STR)
-                    : std::string_view()); // wrap a char* to a string view ;P
+    return append((STR != nullptr)
+                      ? std::string_view(STR)
+                      : std::string_view()); // wrap a char* to a string view ;P
   }
   auto append(bool BOOL) noexcept -> IOBuffer & {
     return append(BOOL ? std::string_view("true") : std::string_view("false"));
@@ -83,7 +85,7 @@ public:
   auto append(char CHAR) noexcept -> IOBuffer & {
     if (LEN == Capacity) {
       flush();
-      }
+    }
     BUFFER[LEN++] = CHAR;
     return *this;
   }
@@ -93,34 +95,36 @@ public:
     return put_num(value);
   }
   template <typename T>
-  auto
-  append(T value) noexcept -> std::enable_if_t<std::is_floating_point_v<T>, IOBuffer &> {
+  auto append(T value) noexcept
+      -> std::enable_if_t<std::is_floating_point_v<T>, IOBuffer &> {
     return put_num(value);
   }
   // Decimal fijo: append_fixed(3.14159, 2) -> "3.14"
   template <typename T>
-  auto
-  append_fixed(T value, int precision) noexcept -> std::enable_if_t<std::is_floating_point_v<T>, IOBuffer &> {
+  auto append_fixed(T value, int precision) noexcept
+      -> std::enable_if_t<std::is_floating_point_v<T>, IOBuffer &> {
     return put_num(value, std::chars_format::fixed, precision);
   }
   // Hex en minúscula, sin prefijo: append_hex(255) -> "ff"
   template <typename T>
-  auto append_hex(T value) noexcept -> std::enable_if_t<is_int_v<T>, IOBuffer &> {
+  auto append_hex(T value) noexcept
+      -> std::enable_if_t<is_int_v<T>, IOBuffer &> {
     constexpr int HEX_MAGIC = 16;
     return put_num(value, HEX_MAGIC);
   }
   // SALIDA
-  template <typename T>
-  auto operator<<(const T& value) noexcept -> IOBuffer& { return append(value); }
+  template <typename T> auto operator<<(const T &value) noexcept -> IOBuffer & {
+    return append(value);
+  }
   // flush->write(2)
   auto flush() noexcept -> bool { return flush(FD); };
   auto flush(int FDE) noexcept -> bool {
     if (LEN <= 0) {
       return !ERR;
-}
+    }
     if (!ERR && !write_all(FDE, BUFFER, LEN)) {
       ERR = true;
-      }
+    }
     LEN = 0;
   }
   // throw away without flushing setting LEN = 0
@@ -128,7 +132,7 @@ public:
   // set all the buffer to zeroes
   void wipe() noexcept {
     volatile char *PTR = BUFFER;
-    #pragma unroll Capacity
+#pragma unroll Capacity
     for (size_t IDX = 0; IDX < Capacity; ++IDX) {
       PTR[IDX] = 0;
     }
@@ -143,10 +147,14 @@ public:
   // get the amount of characters written so far
   [[nodiscard]] auto written() const noexcept -> std::size_t { return LEN; };
   // get the amount of space left in the buffer
-  [[nodiscard]] auto remaining() const noexcept -> std::size_t { return Capacity - LEN; };
+  [[nodiscard]] auto remaining() const noexcept -> std::size_t {
+    return Capacity - LEN;
+  };
   static constexpr auto capacity() noexcept -> std::size_t { return Capacity; };
   // string view of the current buffer
-  [[nodiscard]] auto view() const noexcept -> std::string_view { return {BUFFER, LEN}; };
+  [[nodiscard]] auto view() const noexcept -> std::string_view {
+    return {BUFFER, LEN};
+  };
   // pointer to the raw internal buffer
   [[nodiscard]] auto data() const noexcept -> const char * { return BUFFER; };
   // return the current File Descriptor
