@@ -12,6 +12,10 @@
 #include <system_error>
 #include <type_traits>
 #include <unistd.h>
+// Floating-point std::to_chars requires libstdc++ >= 11 (checked below).
+#if defined(__GLIBCXX__) && !defined(__cpp_lib_to_chars)
+#error "IObuffer needs floating-point std::to_chars (libstdc++ >= 11)"
+#endif
 
 template <std::size_t Capacity> class IOBuffer {
   static constexpr std::size_t MIN_CAPACITY = 64;
