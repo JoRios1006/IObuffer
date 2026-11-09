@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
+#if !defined(__unix__) && !defined(__APPLE__)
+#error "IObuffer requires a real computer: unistd.h, write(2)"
+#endif
 #include <cerrno>
 #include <charconv>
 #include <cstddef>
