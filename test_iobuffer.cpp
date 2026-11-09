@@ -6,7 +6,7 @@
 //
 // CHECK no usa assert(): sigue activo con -DNDEBUG / -O2.
 
-#include "IObuffer.hpp"
+#include "./IObuffer.hpp"
 
 #include <csignal>
 #include <cstdio>
@@ -16,6 +16,8 @@
 
 #include <fcntl.h>
 #include <sys/time.h>
+
+using iobuffer::IOBuffer;
 
 static int g_failed = 0;
 #define CHECK(cond)                                                            \
